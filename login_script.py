@@ -6,17 +6,10 @@ import aiofiles
 import random
 import requests
 import os
-import paramiko  # 添加的库
 
 # 从环境变量中获取 Telegram Bot Token 和 Chat ID
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-
-# SSH连接信息（需要根据实际情况修改）
-SSH_HOST = os.getenv('SSH_HOST')
-SSH_PORT = int(os.getenv('SSH_PORT', 22))
-SSH_USERNAME = os.getenv('SSH_USERNAME')
-SSH_PASSWORD = os.getenv('SSH_PASSWORD')
 
 def format_to_iso(date):
     return date.strftime('%Y-%m-%d %H:%M:%S')
@@ -73,54 +66,6 @@ async def login(username, password, panel):
         if page:
             await page.close()
 
-async def send_telegram_message(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        'chat_id': TELEGRAM_CHAT_ID,
-        'text': message,
-        'reply_markup': {
-            'inline_keyboard': [
-                [
-                    {
-                        'text': '问题反馈❓',
-                        'url': 'https://t.me/yxjsjl'
-                    }
-                ]
-            ]
-        }
-    }
-    headers = {
-        'Content-Type': 'application/json'
-    }
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code != 200:
-            print(f"发送消息到Telegram失败: {response.text}")
-    except Exception as e:
-        print(f"发送消息到Telegram时出错: {e}")
-
-async def execute_ssh_command(command):
-    try:
-        # 创建 SSH 客户端实例
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(SSH_HOST, port=SSH_PORT, username=SSH_USERNAME, password=SSH_PASSWORD)
-
-        # 执行命令
-        stdin, stdout, stderr = ssh.exec_command(command)
-        output = stdout.read().decode()
-        error = stderr.read().decode()
-
-        if output:
-            print(f"SSH 命令输出: {output}")
-        if error:
-            print(f"SSH 命令错误: {error}")
-
-        # 关闭连接
-        ssh.close()
-    except Exception as e:
-        print(f"SSH 连接或命令执行出错: {e}")
-
 async def main():
     global message
     message = 'serv00&ct8自动化脚本运行\n'
@@ -147,10 +92,6 @@ async def main():
             success_message = f'{serviceName}账号 {username} 于北京时间 {now_beijing}（UTC时间 {now_utc}）登录成功！'
             message += success_message + '\n'
             print(success_message)
-            
-            # 在 SSH 连接后执行命令
-            await execute_ssh_command('cd ~/domains/$USER.serv00.net/vless && ./check_vless.sh')
-            
         else:
             message += f'{serviceName}账号 {username} 登录失败，请检查{serviceName}账号和密码是否正确。\n'
             print(f'{serviceName}账号 {username} 登录失败，请检查{serviceName}账号和密码是否正确。')
@@ -161,6 +102,32 @@ async def main():
     message += f'所有{serviceName}账号登录完成！'
     await send_telegram_message(message)
     print(f'所有{serviceName}账号登录完成！')
+
+async def send_telegram_message(message):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': TELEGRAM_CHAT_ID,
+        'text': message,
+        'reply_markup': {
+            'inline_keyboard': [
+                [
+                    {
+                        'text': '问题反馈❓',
+                        'url': 'https://t.me/yxjsjl'
+                    }
+                ]
+            ]
+        }
+    }
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code != 200:
+            print(f"发送消息到Telegram失败: {response.text}")
+    except Exception as e:
+        print(f"发送消息到Telegram时出错: {e}")
 
 if __name__ == '__main__':
     asyncio.run(main())
